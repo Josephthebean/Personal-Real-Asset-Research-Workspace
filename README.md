@@ -57,7 +57,7 @@ Supported v1 formats:
 
 `.docx` is intentionally marked unsupported in v1. Convert it to Markdown, text, PDF, or JSON first.
 
-Then run:
+Then run locally:
 
 ```bash
 python scripts/ingest_reports.py
@@ -66,7 +66,25 @@ python scripts/build_site.py
 python scripts/check_site.py
 ```
 
-A successful ingestion moves the original file to `data/report_drop/processed/`, writes `outputs/report_ingestion_log.json`, updates the JSON data files, creates a memo record, and generates report pages during the next site build.
+A successful local ingestion moves the original file to `data/report_drop/processed/`, writes `outputs/report_ingestion_log.json`, updates the JSON data files, creates a memo record, and generates report pages during the next site build.
+
+## Upload Reports Directly In GitHub
+
+You can also upload reports directly through the GitHub web interface into:
+
+```text
+data/report_drop/new/
+```
+
+After the upload commit lands on `main`, run the Action named:
+
+```text
+Build and Deploy GitHub Pages
+```
+
+The workflow ingests uploaded reports before building the site, so the deployed Pages artifact includes the generated report pages.
+
+Important limitation: report ingestion inside GitHub Actions does not automatically commit the updated `data/*.json` files back to the repository. The deployed site can show the generated memo, but the repo will still show the uploaded file in `data/report_drop/new/`. For permanent repository history, run ingestion locally and commit the resulting JSON changes.
 
 Generated report pages appear in:
 
