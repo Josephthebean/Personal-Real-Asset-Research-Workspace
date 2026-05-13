@@ -1,6 +1,6 @@
 # Personal Real Asset Research Workspace
 
-A static personal productivity workspace for organizing real-asset investment research. It is designed for themes, companies, research notes, source links, valuation assumptions, thesis drafts, memo exports, and weekly follow-up actions.
+A static personal productivity workspace for organizing real-asset investment research. It is designed for themes, companies, research notes, source links, valuation assumptions, thesis drafts, memo exports, weekly follow-up actions, and offline ingestion of long research reports.
 
 This project is a research workflow tool. It is not a stock-picking bot, trading system, automated investment adviser, FactSet replacement, scraper, or live backend application.
 
@@ -8,6 +8,8 @@ This project is a research workflow tool. It is not a stock-picking bot, trading
 
 - Turns JSON research files into a GitHub Pages-ready static site in `public/`
 - Tracks real-asset themes, companies, sources, inbox notes, valuation cases, thesis drafts, memos, and weekly reviews
+- Ingests Markdown, text, PDF, and structured JSON research reports without any LLM or API
+- Parses headings, optional YAML frontmatter, cited sources, and follow-up sections into structured memo records
 - Provides search and filters with vanilla JavaScript
 - Calculates simple illustrative valuation outputs from manually entered assumptions
 - Exports company data, valuation CSVs, and memo Markdown/HTML
@@ -16,6 +18,7 @@ This project is a research workflow tool. It is not a stock-picking bot, trading
 ## Run Locally
 
 ```bash
+pip install -r requirements.txt
 python scripts/validate_data.py
 python scripts/build_site.py
 python scripts/check_site.py
@@ -37,6 +40,71 @@ Expected project URL format:
 https://<github-username>.github.io/personal-real-asset-research-workspace/
 ```
 
+## Ingest A Deep Research Report
+
+Drop long research reports into:
+
+```text
+data/report_drop/new/
+```
+
+Supported v1 formats:
+
+- `.md`
+- `.txt`
+- `.pdf`
+- `.json`
+
+`.docx` is intentionally marked unsupported in v1. Convert it to Markdown, text, PDF, or JSON first.
+
+Then run:
+
+```bash
+python scripts/ingest_reports.py
+python scripts/validate_data.py
+python scripts/build_site.py
+python scripts/check_site.py
+```
+
+A successful ingestion moves the original file to `data/report_drop/processed/`, writes `outputs/report_ingestion_log.json`, updates the JSON data files, creates a memo record, and generates report pages during the next site build.
+
+Generated report pages appear in:
+
+```text
+public/reports.html
+public/memos/<memo_id>.html
+```
+
+The relevant company detail page also shows the report under **Research Reports**.
+
+## Optional Report Frontmatter
+
+Markdown and text reports can include YAML-style frontmatter. When present, the parser uses it before falling back to deterministic inference.
+
+```markdown
+---
+title: Pensana Project Valuation Analysis
+company: Pensana PLC
+ticker: PRE
+exchange: LSE
+theme: rare earths supply chain
+source_type: GPT/Gemini deep research
+source_tier: Tier 2
+confidence: medium
+status: thesis drafting
+tags: [rare earths, NdPr, Angola, Longonjo, Coola]
+date_added: 2026-05-13
+---
+```
+
+If frontmatter is missing, the script infers title, company, ticker/exchange, source type, theme, and confidence from filenames, known companies, ticker patterns, headings, and keyword rules. Uncertain reports are flagged for manual review.
+
+## No-LLM Parsing Rule
+
+Report ingestion is fully offline and deterministic. It does not call OpenAI, Gemini, Claude, or any other LLM API. It does not summarize or rewrite your report. It only extracts text, maps known headings into sections, preserves source material, and flags missing structure for review.
+
+For PDFs, text is extracted locally with `pypdf`. Complex OCR and perfect PDF table extraction are outside v1.
+
 ## Data Files
 
 Core editable data lives in `data/`:
@@ -52,6 +120,14 @@ data/
   memos.json
   tasks.json
   weekly_reviews.json
+  report_drop/
+    new/
+    processed/
+    failed/
+  inbox_drop/
+    new/
+    processed/
+    failed/
 ```
 
 During the build, these files are copied into `public/data/` so the static site can power filters, exports, and local interactivity.
@@ -120,6 +196,8 @@ data/
 public/
 scripts/
 src/
+templates/
+outputs/
 requirements.txt
 README.md
 ```
@@ -130,6 +208,9 @@ README.md
 - No in-browser saving to GitHub without a backend or authenticated GitHub flow
 - No paid data scraping
 - No API keys in frontend JavaScript
+- No LLM summarization or automatic judgment calls
+- No OCR for scanned PDFs in v1
+- `.docx` ingestion is unsupported in v1
 - Sample valuation data is illustrative placeholder data and should be replaced with your own evidence-backed assumptions
 
 ## Suggested Next Features
@@ -140,6 +221,7 @@ README.md
 - Optional Chart.js valuation charts
 - GitHub issue templates for weekly research actions
 - Stronger source-evidence linking between thesis claims and source excerpts
+- Optional `.docx` support through a lightweight local converter
 
 ## Safety Note
 
