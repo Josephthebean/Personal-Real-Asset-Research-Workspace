@@ -5,13 +5,15 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.data_loader import DATA_FILES, load_all
 from src.utils import FORBIDDEN_ADVICE_LANGUAGE, PUBLIC_DIR, slugify
-MAIN_PAGES=["index.html","themes.html","companies.html","inbox.html","sources.html","valuations.html","theses.html","memos.html","weekly-review.html"]
+MAIN_PAGES=["index.html","themes.html","companies.html","inbox.html","sources.html","valuations.html","theses.html","memos.html","reports.html","weekly-review.html"]
 
 def main()->int:
     errors=[]; data=load_all()
     for p in MAIN_PAGES: exists(errors,PUBLIC_DIR/p)
     for f in DATA_FILES.values(): exists(errors,PUBLIC_DIR/'data'/f)
     for c in data['companies']: exists(errors,PUBLIC_DIR/'companies'/f"{slugify(c['ticker'])}.html")
+    for m in data['memos']:
+        if m.get('memo_type') == 'deep research report': exists(errors,PUBLIC_DIR/'memos'/f"{m['memo_id']}.html")
     if (PUBLIC_DIR/'index.html').exists() and 'Next Best Actions' not in (PUBLIC_DIR/'index.html').read_text(encoding='utf-8'): errors.append('Dashboard is missing Next Best Actions.')
     for c in data['companies']:
         p=PUBLIC_DIR/'companies'/f"{slugify(c['ticker'])}.html"
