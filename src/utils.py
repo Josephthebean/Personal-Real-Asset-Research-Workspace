@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import json
-import re
-import shutil
+import json, re, shutil
 from datetime import datetime
 from html import escape
 from pathlib import Path
@@ -33,6 +31,13 @@ def copy_data_files() -> None:
         shutil.copy2(path, target / path.name)
     if (DATA_DIR / "local").exists():
         shutil.copytree(DATA_DIR / "local", target / "local", dirs_exist_ok=True)
+    processed = DATA_DIR / "report_drop" / "processed"
+    if processed.exists():
+        report_target = target / "report_drop" / "processed"
+        report_target.mkdir(parents=True, exist_ok=True)
+        for path in processed.iterdir():
+            if path.is_file() and path.name != ".gitkeep" and path.stat().st_size <= 5_000_000:
+                shutil.copy2(path, report_target / path.name)
 
 def parse_date(value: str) -> datetime:
     return datetime.strptime(value, "%Y-%m-%d")
