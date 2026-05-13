@@ -29,6 +29,9 @@ def copy_data_files() -> None:
     target.mkdir(parents=True, exist_ok=True)
     for path in DATA_DIR.glob("*.json"):
         shutil.copy2(path, target / path.name)
+    company_dir = DATA_DIR / "companies"
+    if company_dir.exists():
+        shutil.copytree(company_dir, target / "companies", dirs_exist_ok=True)
     if (DATA_DIR / "local").exists():
         shutil.copytree(DATA_DIR / "local", target / "local", dirs_exist_ok=True)
     processed = DATA_DIR / "report_drop" / "processed"
