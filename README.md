@@ -1,26 +1,43 @@
-# Pensana Investment Research Dashboard
+# Real Asset Investment Research Platform
 
-A static, single-company investment research dashboard for reviewing Pensana PLC using one uploaded source: `data/report_drop/processed/Pensana Project Valuation Analysis_.pdf`.
+A static, multi-company research platform for real-asset investment work. The homepage is a company screener, and each company has its own generated dashboard page.
 
-This version removes the earlier multi-company sample workspace. It is a focused research memo and assumptions dashboard, not a stock-picking bot, trading system, investment adviser, live data feed, or FactSet replacement.
+Pensana is the first company entry. It now lives in a reusable company JSON file rather than a hardcoded one-off page.
 
-## What The Site Shows
+## Structure
 
-- Pensana company summary
-- Rare earth / NdPr industry primer
-- Longonjo and Coola project details
-- Report-derived valuation fields
-- P/NPV calculation
-- Editable assumptions panel
-- Editable catalyst tracker
-- Editable risk register
-- Source references back to the uploaded Pensana report
+```text
+data/
+  company_registry.json
+  companies/
+    pensana.json
+    example_company_template.json
+```
 
-Missing figures are shown as `Not disclosed in uploaded report` or `To be updated`.
+`company_registry.json` powers the homepage screener. Each file in `data/companies/` powers one company dashboard.
 
-## Data Source
+Generated pages:
 
-The structured dashboard data lives in `data/pensana.json`. Compatibility JSON files are reduced to Pensana-only records so older sample companies are not generated.
+```text
+public/index.html
+public/company/pensana.html
+```
+
+## Company JSON
+
+Each company JSON can include company summary, commodity exposure, industry primer, projects, valuation, catalysts, risks, sources, and user assumptions.
+
+Use `data/companies/example_company_template.json` when adding the next company.
+
+## Interactivity
+
+Each dashboard preserves editable valuation and status fields. Edits are stored in browser `localStorage` with a company-specific key:
+
+```text
+company-dashboard-<slug>-v1
+```
+
+That keeps edits for one company separate from every other company.
 
 ## Run Locally
 
@@ -33,19 +50,13 @@ python scripts/check_site.py
 
 Open `public/index.html`.
 
-## Edit Assumptions On The Page
+## Add A New Company
 
-The dashboard supports local edits for market cap, project NPV, discount rate, capex, opex, commodity price assumption, production volume, project status, financing status, permitting status, offtake status, government support status, next catalyst, catalyst date, and notes.
-
-Edits are stored in browser `localStorage`. Use **Reset to report values** to restore the extracted baseline.
-
-## P/NPV
-
-```text
-P/NPV = Market Capitalisation / Project NPV
-```
-
-Both inputs can be updated in the assumptions panel. If either value is missing, the dashboard marks the calculation incomplete.
+1. Copy `data/companies/example_company_template.json`.
+2. Rename it to `data/companies/<company-slug>.json`.
+3. Fill in the company data and source references.
+4. Add a row to `data/company_registry.json`.
+5. Rebuild the site.
 
 ## Deploy To GitHub Pages
 
@@ -53,14 +64,10 @@ Both inputs can be updated in the assumptions panel. If either value is missing,
 2. In repository settings, set Pages source to **GitHub Actions**.
 3. Run the Action named **Build and Deploy GitHub Pages**.
 
-## Limitations
+## Boundaries
 
-- No external APIs or live market data.
-- No LLM summarization.
-- No automatic fact invention.
-- No persistent in-browser editing beyond localStorage.
-- Only Pensana is active in this version.
-
-## Safety Note
-
-This is a personal research workflow tool for organizing evidence, assumptions, and follow-up work. It does not make investment recommendations.
+- No external APIs.
+- No live market data.
+- No LLM calls.
+- No automatic recommendations.
+- Calculations are illustrative research workflow outputs only.

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
@@ -8,36 +9,25 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.utils import FORBIDDEN_ADVICE_LANGUAGE, PUBLIC_DIR
 
-REQUIRED_MARKERS = [
-    "Pensana Investment Research Dashboard",
-    "Interactive Assumptions Panel",
-    "Catalyst Tracker",
-    "Risk Register",
-    "Source Traceability",
-]
-
 
 def main() -> int:
     errors: list[str] = []
-    index = PUBLIC_DIR / "index.html"
-    if not index.exists():
-        errors.append("Missing generated file: public/index.html")
+    registry_path = PUBLIC_DIR / "data" / "company_registry.json"
+    if not registry_path.exists():
+        errors.append("Missing generated file: public/data/company_registry.json")
+        registry = []
     else:
-        content = index.read_text(encoding="utf-8")
-        lowered = content.lower()
-        for marker in REQUIRED_MARKERS:
-            if marker not in content:
-                errors.append(f"Dashboard missing marker: {marker}")
-        for forbidden in ["free" + "port", "f" + "cx", "came" + "co", "c" + "cj", "whe" + "aton", "w" + "pm", "ag" + "nico", "a" + "em"]:
-            if forbidden in lowered:
-                errors.append(f"Old sample company reference still present: {forbidden}")
-    for required in [
-        PUBLIC_DIR / "assets" / "styles.css",
-        PUBLIC_DIR / "assets" / "app.js",
-        PUBLIC_DIR / "data" / "pensana.json",
-    ]:
-        if not required.exists():
-            errors.append(f"Missing generated file: {required}")
+        registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    _must_contain(errors, PUBLIC_DIR / "index.html", ["Investment Research Screener", "Company Screener", "Pensana PLC"])
+    for row in registry:
+        slug = row["slug"]
+        _must_contain(
+            errors,
+            PUBLIC_DIR / "company" / f"{slug}.html",
+            ["Research Dashboard", "Interactive Assumptions Panel", "Catalyst Tracker", "Risk Register", "Source Traceability", f"company-dashboard-{slug}-v1"],
+        )
+        if not (PUBLIC_DIR / "data" / "companies" / f"{slug}.json").exists():
+            errors.append(f"Missing copied company JSON for {slug}.")
     _check_internal_links(errors)
     _check_forbidden_language(errors)
     if errors:
@@ -47,6 +37,16 @@ def main() -> int:
         return 1
     print("Site check passed.")
     return 0
+
+
+def _must_contain(errors: list[str], path: Path, markers: list[str]) -> None:
+    if not path.exists():
+        errors.append(f"Missing generated file: {path}")
+        return
+    content = path.read_text(encoding="utf-8")
+    for marker in markers:
+        if marker not in content:
+            errors.append(f"{path} missing marker: {marker}")
 
 
 def _check_internal_links(errors: list[str]) -> None:
