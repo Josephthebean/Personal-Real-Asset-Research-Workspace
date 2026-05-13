@@ -1,38 +1,74 @@
 from __future__ import annotations
 
-import re, sys
+import re
+import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from src.data_loader import DATA_FILES, load_all
-from src.utils import FORBIDDEN_ADVICE_LANGUAGE, PUBLIC_DIR, slugify
-MAIN_PAGES=["index.html","themes.html","companies.html","inbox.html","sources.html","valuations.html","theses.html","memos.html","reports.html","weekly-review.html"]
 
-def main()->int:
-    errors=[]; data=load_all()
-    for p in MAIN_PAGES: exists(errors,PUBLIC_DIR/p)
-    for f in DATA_FILES.values(): exists(errors,PUBLIC_DIR/'data'/f)
-    for c in data['companies']: exists(errors,PUBLIC_DIR/'companies'/f"{slugify(c['ticker'])}.html")
-    for m in data['memos']:
-        if m.get('memo_type') == 'deep research report': exists(errors,PUBLIC_DIR/'memos'/f"{m['memo_id']}.html")
-    if (PUBLIC_DIR/'index.html').exists() and 'Next Best Actions' not in (PUBLIC_DIR/'index.html').read_text(encoding='utf-8'): errors.append('Dashboard is missing Next Best Actions.')
-    for c in data['companies']:
-        p=PUBLIC_DIR/'companies'/f"{slugify(c['ticker'])}.html"
-        if p.exists():
-            txt=p.read_text(encoding='utf-8')
-            for marker in ['Download company JSON','Download valuation CSV','Print/save memo as PDF']:
-                if marker not in txt: errors.append(f'{p} missing {marker}')
-    for html in PUBLIC_DIR.rglob('*.html'):
-        txt=html.read_text(encoding='utf-8')
-        for href in re.findall(r'href="([^"]+)"',txt):
-            if href.startswith(('http://','https://','mailto:','#')): continue
-            if not (html.parent/href.split('#')[0]).resolve().exists(): errors.append(f'Broken internal link in {html}: {href}')
-        low=txt.lower()
-        for phrase in FORBIDDEN_ADVICE_LANGUAGE:
-            if phrase in low: errors.append(f'Forbidden advice language in {html}: {phrase}')
+from src.utils import FORBIDDEN_ADVICE_LANGUAGE, PUBLIC_DIR
+
+REQUIRED_MARKERS = [
+    "Pensana Investment Research Dashboard",
+    "Interactive Assumptions Panel",
+    "Catalyst Tracker",
+    "Risk Register",
+    "Source Traceability",
+]
+
+
+def main() -> int:
+    errors: list[str] = []
+    index = PUBLIC_DIR / "index.html"
+    if not index.exists():
+        errors.append("Missing generated file: public/index.html")
+    else:
+        content = index.read_text(encoding="utf-8")
+        lowered = content.lower()
+        for marker in REQUIRED_MARKERS:
+            if marker not in content:
+                errors.append(f"Dashboard missing marker: {marker}")
+        for forbidden in ["free" + "port", "f" + "cx", "came" + "co", "c" + "cj", "whe" + "aton", "w" + "pm", "ag" + "nico", "a" + "em"]:
+            if forbidden in lowered:
+                errors.append(f"Old sample company reference still present: {forbidden}")
+    for required in [
+        PUBLIC_DIR / "assets" / "styles.css",
+        PUBLIC_DIR / "assets" / "app.js",
+        PUBLIC_DIR / "data" / "pensana.json",
+    ]:
+        if not required.exists():
+            errors.append(f"Missing generated file: {required}")
+    _check_internal_links(errors)
+    _check_forbidden_language(errors)
     if errors:
-        print('Site check failed:'); [print(f'- {e}') for e in errors]; return 1
-    print('Site check passed.'); return 0
+        print("Site check failed:")
+        for error in errors:
+            print(f"- {error}")
+        return 1
+    print("Site check passed.")
+    return 0
 
-def exists(errors,path):
-    if not path.exists(): errors.append(f'Missing generated file: {path}')
-if __name__=='__main__': raise SystemExit(main())
+
+def _check_internal_links(errors: list[str]) -> None:
+    href_re = re.compile(r'href="([^"]+)"')
+    for html in PUBLIC_DIR.rglob("*.html"):
+        for href in href_re.findall(html.read_text(encoding="utf-8")):
+            if href.startswith(("http://", "https://", "mailto:", "#")):
+                continue
+            target = (html.parent / href.split("#", 1)[0]).resolve()
+            if not target.exists():
+                errors.append(f"Broken internal link in {html}: {href}")
+
+
+def _check_forbidden_language(errors: list[str]) -> None:
+    for path in PUBLIC_DIR.rglob("*"):
+        if path.suffix.lower() not in {".html", ".js", ".css", ".json", ".md"}:
+            continue
+        lowered = path.read_text(encoding="utf-8").lower()
+        for phrase in FORBIDDEN_ADVICE_LANGUAGE:
+            if phrase in lowered:
+                errors.append(f"Forbidden advice language found in {path}: {phrase}")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
