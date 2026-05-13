@@ -29,6 +29,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Check report ingestion
+        run: python scripts/check_report_ingestion.py
+
       - name: Validate data
         run: python scripts/validate_data.py
 
